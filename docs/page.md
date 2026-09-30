@@ -157,3 +157,15 @@ It merges nothing to find out, and uncommitted lists in another worktree count.
 ## Who can reach it
 
 The page listens only on this computer, so nothing else on your network can reach it. It also answers only to localhost addresses, so a website you visit can't reach it by pointing its own name at your computer.
+
+### From your other devices
+
+With [Tailscale](https://tailscale.com), you can open the page from your phone or another computer on your tailnet:
+
+```sh
+callboard serve --tailnet
+```
+
+Callboard asks `tailscale serve` to put the page at `https://<this computer's tailnet name>:<port>`, over HTTPS, and prints that address. It lets in only the Tailscale login this computer is signed in with; anyone else on the tailnet gets a refusal, and writes from other sites are still refused. When `callboard serve` stops, it takes the address down again.
+
+It needs the `tailscale` command, HTTPS certificates turned on for your tailnet, and, on Linux, permission to run `tailscale serve` (`sudo tailscale set --operator=$USER`).

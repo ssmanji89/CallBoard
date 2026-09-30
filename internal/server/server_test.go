@@ -252,3 +252,49 @@ func TestOnlyLocalHosts(t *testing.T) {
 		t.Errorf("a foreign host added an item:\n%s", b)
 	}
 }
+
+func TestTailnetLogin(t *testing.T) {
+	dir := t.TempDir()
+	exec.Command("git", "-C", dir, "init", "-q", "-b", "main").Run()
+	os.WriteFile(filepath.Join(dir, "backlog.md"), []byte("# Backlog\n"), 0o644)
+	s := New(dir)
+	s.AllowTailnet(Tailnet{Host: "mac.tail1.ts.net", Login: "me@example.com"})
+	ts := httptest.NewServer(s.Handler())
+	defer ts.Close()
+	for _, c := range []struct {
+		method, host, login, origin string
+		want                        int
+	}{
+		{"GET", "mac.tail1.ts.net:4860", "me@example.com", "", 200},
+		{"GET", "MAC.tail1.ts.net.:4860", "me@example.com", "", 200},
+		{"GET", "mac.tail1.ts.net:4860", "", "", 403},
+		{"GET", "mac.tail1.ts.net:4860", "someone@example.com", "", 403},
+		{"GET", "evil.example:4860", "me@example.com", "", 403},
+		{"POST", "mac.tail1.ts.net:4860", "me@example.com", "https://mac.tail1.ts.net:4860", 201},
+		{"POST", "mac.tail1.ts.net:4860", "me@example.com", "https://evil.example", 403},
+		{"POST", "mac.tail1.ts.net:4860", "someone@example.com", "https://mac.tail1.ts.net:4860", 403},
+	} {
+		req, _ := http.NewRequest(c.method, ts.URL+"/api/board", nil)
+		if c.method == "POST" {
+			req, _ = http.NewRequest(c.method, ts.URL+"/api/items", strings.NewReader(`{"title":"From the tailnet"}`))
+		}
+		req.Host = c.host
+		if c.login != "" {
+			req.Header.Set("Tailscale-User-Login", c.login)
+		}
+		if c.origin != "" {
+			req.Header.Set("Origin", c.origin)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != c.want {
+			t.Errorf("%s Host %s login %q origin %q: %d, want %d", c.method, c.host, c.login, c.origin, resp.StatusCode, c.want)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, "backlog.md")); strings.Count(string(b), "From the tailnet") != 1 {
+		t.Errorf("want exactly one item from the tailnet:\n%s", b)
+	}
+}

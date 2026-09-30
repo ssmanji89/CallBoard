@@ -33,7 +33,7 @@ A little. Agents get a short summary at the start of each session, and a line of
 
 ### Does it send my code or my lists anywhere?
 
-No. Callboard is one program on your computer, with no account and no server. The page runs only while `callboard serve` does, and only your own computer can open it. The lists travel only where you push your repo.
+No. Callboard is one program on your computer, with no account and no server. The page runs only while `callboard serve` does, and only your own computer can open it, unless you start it with `--tailnet`, which lets your own Tailscale login open it from your other devices. The lists travel only where you push your repo.
 
 ### Can I edit the lists myself?
 

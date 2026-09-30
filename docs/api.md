@@ -25,4 +25,4 @@ The page is a small JSON API on localhost, which you can script too.
 | `DELETE /api/lists/NAME` | remove it (`?force=1` if it has open items) |
 | `POST /api/sections` | `{"kind", "name"}` and one of `"to"`, `"before"`, `"after"` or `"remove"` (with `"into"`): rename, move or remove a heading |
 
-It listens only on localhost, answers only to localhost addresses, and refuses writes that come from other sites.
+It listens only on localhost, answers only to localhost addresses, and refuses writes that come from other sites. With `callboard serve --tailnet` it also answers on this computer's tailnet name, to requests that `tailscale serve` marks as your own login.

@@ -33,7 +33,7 @@
 | `callboard views [--json]` | The saved views |
 | `callboard view [KEY] [--name N] [--list L] [--layout list\|board\|table] [--group F] [--order a,b] [--sort F,-G] [--filter F=V]… [--show a,b] [--suggest "why"] [--keep] [--delete]` | Make, change or delete a view; `--suggest` offers it to you instead of adding it |
 | `callboard keys` | Give items typed by hand a key, and hand over a checklist Callboard was leaving alone |
-| `callboard serve [--port N] [--open]` | The live page; each worktree has its own port, 4700–4999 |
+| `callboard serve [--port N] [--open] [--tailnet]` | The live page; each worktree has its own port, 4700–4999. `--tailnet` also opens it to your own Tailscale login on your other devices ([the page](page.md#from-your-other-devices)) |
 | `callboard setup [--global \| claude \| codex]` · `disconnect [--global]` · `status [--global]` | Connect Claude Code, Codex and git, undo it, check it |
 | `callboard install` · `uninstall` | Put callboard in `~/.local/bin`, or take it out |
 | `callboard off` · `on` | Switch Callboard off in this repo, or back on |

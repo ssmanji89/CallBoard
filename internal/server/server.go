@@ -211,7 +211,17 @@ type Server struct {
 	st      *store.Store
 	mu      sync.Mutex
 	clients map[chan [2]string]bool
+	tailnet *Tailnet
 }
+
+// Tailnet is this machine's name on a tailnet and the one Tailscale login that
+// may open the page there, through tailscale serve.
+type Tailnet struct {
+	Host  string
+	Login string
+}
+
+func (s *Server) AllowTailnet(t Tailnet) { s.tailnet = &t }
 
 func New(dir string) *Server {
 	return &Server{st: store.Open(dir), clients: map[chan [2]string]bool{}}
@@ -244,7 +254,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/lists", s.addList)
 	mux.HandleFunc("PATCH /api/lists/{name}", s.renameList)
 	mux.HandleFunc("DELETE /api/lists/{name}", s.removeList)
-	return sameOrigin(mux)
+	return s.sameOrigin(mux)
 }
 
 func staticFiles() http.Handler {
@@ -268,18 +278,27 @@ func staticFiles() http.Handler {
 	})
 }
 
-func localHost(hostport string) bool {
+func hostName(hostport string) string {
 	host := hostport
 	if h, _, err := net.SplitHostPort(hostport); err == nil {
 		host = h
 	}
-	host = strings.ToLower(strings.TrimSuffix(strings.Trim(host, "[]"), "."))
+	return strings.ToLower(strings.TrimSuffix(strings.Trim(host, "[]"), "."))
+}
+
+func localHost(hostport string) bool {
+	host := hostName(hostport)
 	return host == "localhost" || host == "127.0.0.1" || host == "::1" || strings.HasSuffix(host, ".localhost")
 }
 
-func sameOrigin(h http.Handler) http.Handler {
+// tailscale serve drops any Tailscale-User-Login a client sends and sets its own.
+func (s *Server) fromTailnet(r *http.Request) bool {
+	return s.tailnet != nil && hostName(r.Host) == hostName(s.tailnet.Host) && r.Header.Get("Tailscale-User-Login") == s.tailnet.Login
+}
+
+func (s *Server) sameOrigin(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !localHost(r.Host) {
+		if !localHost(r.Host) && !s.fromTailnet(r) {
 			http.Error(w, "this page answers only on localhost", http.StatusForbidden)
 			return
 		}

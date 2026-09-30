@@ -74,8 +74,9 @@ Agents and git:
   callboard octopus BASES -- HEAD REMOTES   merging several branches at once (git calls this through git-merge-callboard)
 
 Page and setup:
-  callboard serve [--port N] [--open]   the live page for this worktree (only runs when you start it)
-                                        for your phone or teammates (--read-only: they can't change anything)
+  callboard serve [--port N] [--open] [--tailnet]
+                                        the live page for this worktree (only runs when you start it);
+                                        --tailnet: also for your phone, your own Tailscale login on your tailnet
   callboard setup --global              connect Claude Code, Codex and git for every project, in your own settings
   callboard setup [claude|codex]        connect them in this repo only, in files you commit (for a team)
   callboard disconnect [--global]       undo setup (leaves the callboard command for other projects)

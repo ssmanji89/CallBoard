@@ -25,6 +25,7 @@ func serve(args []string) error {
 	st := store.Open(wd())
 	port := fs.Int("port", 0, "port (default: this worktree's own, 4700–4999)")
 	open := fs.Bool("open", false, "open the page in the browser")
+	tailnet := fs.Bool("tailnet", false, "also open the page to your own Tailscale login, on this computer's tailnet name")
 	if _, err := parse(fs, args); err != nil {
 		return err
 	}
@@ -38,6 +39,9 @@ func serve(args []string) error {
 		switch server.Probe(p, st.Root) {
 		case "ours":
 			url := fmt.Sprintf("http://localhost:%d", p)
+			if *tailnet {
+				return fmt.Errorf("callboard is already running for %s at %s; stop it, then start it again with --tailnet", st.Root, url)
+			}
 			fmt.Printf("✓ callboard already running for %s at %s\n", st.Root, url)
 			if *open {
 				openURL(url)
@@ -73,11 +77,22 @@ listen:
 	if st.Off() {
 		agents = "Callboard is switched off here, so the lists can be read but not changed (callboard on turns it back on)"
 	}
-	fmt.Printf("✓ Callboard for %s (%s) at %s\n  lists:  %s in %s\n  agents: %s\n  stop:   Ctrl-C\n", st.Name, branch, url, strings.Join(files, ", "), store.Tilde(st.Root), agents)
+	srv := server.New(wd())
+	reach := ""
+	if *tailnet {
+		t, off, err := tailnetUp(p)
+		if err != nil {
+			return err
+		}
+		defer off()
+		srv.AllowTailnet(t)
+		reach = fmt.Sprintf("  tailnet: https://%s:%d, for %s only\n", t.Host, p, t.Login)
+	}
+	fmt.Printf("✓ Callboard for %s (%s) at %s\n%s  lists:  %s in %s\n  agents: %s\n  stop:   Ctrl-C\n", st.Name, branch, url, reach, strings.Join(files, ", "), store.Tilde(st.Root), agents)
 	if *open {
 		go func() { time.Sleep(300 * time.Millisecond); openURL(url) }()
 	}
-	return server.New(wd()).Serve(ctx, p)
+	return srv.Serve(ctx, p)
 }
 func openURL(url string) {
 	name := "xdg-open"
